@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type ExtensionCommandContext, getAgentDir, type ProviderModelConfig } from "@mariozechner/pi-coding-agent";
 import { AuthStorage } from "@mariozechner/pi-coding-agent";
+import { getModels, getProviders } from "@mariozechner/pi-ai";
 
 // --- Constants ---
 const CACHE_DIR = join(getAgentDir(), "cache");
@@ -46,6 +47,20 @@ function getContextLength(modelInfo: Record<string, unknown>): number {
   return 128000;
 }
 
+// --- Built-in model knowledge index ---
+// Build a lookup of model ID -> thinkingLevelMap from pi's built-in models.
+// This avoids hardcoding model-family mappings: when pi-mono updates its
+// model definitions (e.g. DeepSeek V4's thinking levels), the extension
+// picks up the changes automatically.
+const BUILTIN_THINKING_MAP: Record<string, ProviderModelConfig["thinkingLevelMap"]> = {};
+for (const provider of getProviders()) {
+  for (const model of getModels(provider as any)) {
+    if (model.thinkingLevelMap) {
+      BUILTIN_THINKING_MAP[model.id] = model.thinkingLevelMap;
+    }
+  }
+}
+
 export function assembleModels(raw: Record<string, OllamaShowResponse>): ProviderModelConfig[] {
   return Object.entries(raw)
     .filter(([, data]) => data.capabilities?.includes("tools"))
@@ -53,6 +68,7 @@ export function assembleModels(raw: Record<string, OllamaShowResponse>): Provide
       id,
       name: id,
       reasoning: data.capabilities?.includes("thinking") ?? false,
+      thinkingLevelMap: BUILTIN_THINKING_MAP[id],
       input: (data.capabilities?.includes("vision") ? ["text", "image"] : ["text"]) as ("text" | "image")[],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow: getContextLength(data.model_info ?? {}),
