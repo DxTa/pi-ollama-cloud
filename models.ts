@@ -53,12 +53,44 @@ function getContextLength(modelInfo: Record<string, unknown>): number {
 // model definitions (e.g. DeepSeek V4's thinking levels), the extension
 // picks up the changes automatically.
 const BUILTIN_THINKING_MAP: Record<string, ProviderModelConfig["thinkingLevelMap"]> = {};
+// Fallback: family stem -> [stem, thinkingLevelMap] pairs for models whose Ollama Cloud
+// ID doesn't match exactly.  The stem is derived by stripping provider prefixes and
+// non-alphanumeric characters (e.g. "gemma-4-31b-it" -> "gemma431bit").
+// When looking up an Ollama model by its details.family field, we search for a pi stem
+// that starts with the family stem (e.g. family "gemma4" -> pi "gemma431bit").
+// Entries are sorted longest-first so the most specific match wins.
+const BUILTIN_FAMILY_ENTRIES: [string, NonNullable<ProviderModelConfig["thinkingLevelMap"]>][] = [];
 for (const provider of getProviders()) {
   for (const model of getModels(provider as any)) {
     if (model.thinkingLevelMap) {
       BUILTIN_THINKING_MAP[model.id] = model.thinkingLevelMap;
+      const stem = model.id
+        .replace(/^[a-z0-9-]+\//, "") // strip provider prefix (e.g. "zai/", "deepseek/")
+        .replace(/[^a-zA-Z0-9]/g, "") // strip non-alphanumeric
+        .toLowerCase();
+      BUILTIN_FAMILY_ENTRIES.push([stem, model.thinkingLevelMap]);
     }
   }
+}
+// Longest stems first so a more specific match (e.g. "gemma431bit") wins over a generic one (e.g. "gemma4").
+BUILTIN_FAMILY_ENTRIES.sort((a, b) => b[0].length - a[0].length);
+
+function resolveThinkingLevelMap(modelId: string, data: OllamaShowResponse): ProviderModelConfig["thinkingLevelMap"] {
+  // 1. Exact ID match (e.g. "deepseek-v4-pro")
+  const exact = BUILTIN_THINKING_MAP[modelId];
+  if (exact) return exact;
+
+  // 2. Family-based fallback: match Ollama's details.family against pi model stems
+  if (data.capabilities?.includes("thinking")) {
+    const familyStem = data.details.family.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    for (const [stem, tlm] of BUILTIN_FAMILY_ENTRIES) {
+      if (stem.startsWith(familyStem)) {
+        return tlm;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 export function assembleModels(raw: Record<string, OllamaShowResponse>): ProviderModelConfig[] {
@@ -68,7 +100,7 @@ export function assembleModels(raw: Record<string, OllamaShowResponse>): Provide
       id,
       name: id,
       reasoning: data.capabilities?.includes("thinking") ?? false,
-      thinkingLevelMap: BUILTIN_THINKING_MAP[id],
+      thinkingLevelMap: resolveThinkingLevelMap(id, data),
       input: (data.capabilities?.includes("vision") ? ["text", "image"] : ["text"]) as ("text" | "image")[],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow: getContextLength(data.model_info ?? {}),
@@ -122,16 +154,17 @@ export function writeCache(models: Record<string, OllamaShowResponse>): void {
 // --- Fetch Models ---
 export async function fetchModels(ctx: ExtensionCommandContext): Promise<Record<string, OllamaShowResponse> | null> {
   const apiKey = await authStorage.getApiKey("ollama-cloud");
-  
+
   if (!apiKey) {
     ctx.ui.notify(
       "No Ollama Cloud API key found. \n" +
-      "Please ensure your API key is set in: \n" +
-      "- auth.json file (at ~/.pi/agent/auth.json) under 'ollama-cloud' key,\n" +
-      "- or via the CLI --api-key flag.\n" +
-      "Example auth.json entry: \n" +
-      '{ \"ollama-cloud\": { \"type\": \"api_key\", \"key\": \"YOUR_API_KEY\" } }'
-    , "error");
+        "Please ensure your API key is set in: \n" +
+        "- auth.json file (at ~/.pi/agent/auth.json) under 'ollama-cloud' key,\n" +
+        "- or via the CLI --api-key flag.\n" +
+        "Example auth.json entry: \n" +
+        '{ \"ollama-cloud\": { \"type\": \"api_key\", \"key\": \"YOUR_API_KEY\" } }',
+      "error",
+    );
     return null;
   }
 
