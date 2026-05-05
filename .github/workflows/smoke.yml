@@ -1,0 +1,35 @@
+name: Smoke Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install pi
+        run: npm install -g @mariozechner/pi-coding-agent
+
+      - name: Smoke test
+        env:
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_CLOUD_API_KEY }}
+        run: pi --extension ./index.ts --model "ollama-cloud/gemma4:31b" --no-tools -p "Say hi in one word"

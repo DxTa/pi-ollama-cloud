@@ -1,8 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type ExtensionCommandContext, getAgentDir, type ProviderModelConfig } from "@mariozechner/pi-coding-agent";
-import { AuthStorage } from "@mariozechner/pi-coding-agent";
 import { getModels, getProviders } from "@mariozechner/pi-ai";
+import {
+  AuthStorage,
+  type ExtensionCommandContext,
+  getAgentDir,
+  type ProviderModelConfig,
+} from "@mariozechner/pi-coding-agent";
 
 // --- Constants ---
 const CACHE_DIR = join(getAgentDir(), "cache");
@@ -10,7 +14,7 @@ const CACHE_FILE = join(CACHE_DIR, "ollama-cloud-models.json");
 const FETCH_TIMEOUT_MS = 10000;
 
 // --- API fetch ---
-export let OLLAMA_BASE = (process.env.OLLAMA_API_BASE || "https://ollama.com").replace(/\/+$/, "");
+export const OLLAMA_BASE = (process.env.OLLAMA_API_BASE || "https://ollama.com").replace(/\/+$/, "");
 
 // Initialize AuthStorage
 const authStorage = AuthStorage.create();
@@ -82,10 +86,12 @@ function resolveThinkingLevelMap(modelId: string, data: OllamaShowResponse): Pro
 
   // 2. Family-based fallback: match Ollama's details.family against pi model stems
   if (data.capabilities?.includes("thinking")) {
-    const familyStem = data.details.family.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-    for (const [stem, tlm] of BUILTIN_FAMILY_ENTRIES) {
-      if (stem.startsWith(familyStem)) {
-        return tlm;
+    const familyStem = data.details?.family?.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() ?? "";
+    if (familyStem) {
+      for (const [stem, tlm] of BUILTIN_FAMILY_ENTRIES) {
+        if (stem.startsWith(familyStem)) {
+          return tlm;
+        }
       }
     }
   }
@@ -111,18 +117,18 @@ export function assembleModels(raw: Record<string, OllamaShowResponse>): Provide
 // --- Fallback models (cold cache) ---
 export const FALLBACK_MODELS: ProviderModelConfig[] = [
   {
-    id: "glm-5.1:cloud",
-    name: "GLM 5.1 Cloud",
-    reasoning: true,
+    id: "glm-5.1",
+    name: "GLM 5.1",
+    reasoning: false,
     input: ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 202752,
     maxTokens: 32768,
   },
   {
-    id: "gemma4:cloud",
-    name: "Gemma 4 Cloud",
-    reasoning: true,
+    id: "gemma4:31b",
+    name: "Gemma 4 31B",
+    reasoning: false,
     input: ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 262144,
@@ -153,7 +159,7 @@ export function writeCache(models: Record<string, OllamaShowResponse>): void {
 
 // --- Fetch Models ---
 export async function fetchModels(ctx: ExtensionCommandContext): Promise<Record<string, OllamaShowResponse> | null> {
-  const apiKey = await authStorage.getApiKey("ollama-cloud");
+  const apiKey = (await authStorage.getApiKey("ollama-cloud")) ?? process.env.OLLAMA_API_KEY;
 
   if (!apiKey) {
     ctx.ui.notify(
@@ -162,7 +168,7 @@ export async function fetchModels(ctx: ExtensionCommandContext): Promise<Record<
         "- auth.json file (at ~/.pi/agent/auth.json) under 'ollama-cloud' key,\n" +
         "- or via the CLI --api-key flag.\n" +
         "Example auth.json entry: \n" +
-        '{ \"ollama-cloud\": { \"type\": \"api_key\", \"key\": \"YOUR_API_KEY\" } }',
+        '{ "ollama-cloud": { "type": "api_key", "key": "YOUR_API_KEY" } }',
       "error",
     );
     return null;
