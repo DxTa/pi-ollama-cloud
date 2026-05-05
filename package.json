@@ -11,7 +11,7 @@
     "thinking.ts",
     "utils.ts",
     "web-tools.ts",
-    "reasoning-models.json",
+    "reasoning-models.ts",
     "CHANGELOG.md",
     "README.md",
     "LICENSE"
