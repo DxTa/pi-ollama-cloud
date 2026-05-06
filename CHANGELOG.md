@@ -4,10 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-- Fix `/api/chat` requests not disabling thinking when Pi's thinking level is set to `off`, by mapping Pi `off` to `reasoning_effort: "none"` for models that support it (#6).
-- Add thinking-level mapping: Pi levels `off`/`low`/`medium`/`high` map directly to Ollama Cloud's OpenAI-compatible `reasoning_effort` values (`none`/`low`/`medium`/`high`). `minimal` and `xhigh` are hidden. GPT-OSS has no off mode, Qwen3 is binary-only.
-- Fix system prompt (AGENTS.md content) not being read by GLM models by setting `supportsDeveloperRole: false` on all registered models so the system prompt always uses `role: "system"`.
-- Document how thinking levels are determined and how to refresh the cached model metadata.
+- Fix `/api/chat` requests not disabling thinking when Pi's thinking level is set to `off`. Maps Pi `off` to `reasoning_effort: "none"` on models where the API respects it, hides the `off` level on models where it doesn't (gpt-oss, kimi-k2-thinking, minimax, qwen3-vl). (#6)
+- Add `thinking-levels.ts` with curated per-model thinking level maps (DEFAULT, GPT_OSS, QWEN3, NO_OFF), validated against all 24 thinking-capable models via automated experiment (see docs/think-experiment.md).
+- Fix system prompt (AGENTS.md content) not being read by GLM models by setting `supportsDeveloperRole: false` on all registered models.
 - Treat stale local model caches as usable for immediate startup while triggering the same visible refresh flow as `/ollama-cloud-refresh` on `session_start`; use fallback models only when the cache is missing or invalid.
 - Add a single-line `/ollama-cloud-refresh` progress widget showing the current stage, count, percentage, failures, and progress bar.
 - Add thinking on/off assertions to the CI smoke test.
