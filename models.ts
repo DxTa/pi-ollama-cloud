@@ -6,6 +6,7 @@ import {
   getAgentDir,
   type ProviderModelConfig,
 } from "@mariozechner/pi-coding-agent";
+import { resolve as resolveThinkingLevelMap } from "./thinking-levels.ts";
 import { concurrentMap, fetchJsonWithTimeout, getContextLength } from "./utils.ts";
 
 // --- Constants ---
@@ -52,48 +53,6 @@ export interface RefreshProgress {
   total?: number;
   failed?: number;
   message: string;
-}
-
-// --- Thinking level mapping ---
-// Ollama Cloud's OpenAI-compatible API accepts: "none", "low", "medium", "high".
-// "max" is NOT supported. See https://docs.ollama.com/api/openai-compatibility
-
-const DEFAULT_THINKING_MAP = {
-  off: "none",
-  minimal: null,
-  low: "low",
-  medium: "medium",
-  high: "high",
-  xhigh: null,
-};
-
-// GPT-OSS can't disable thinking, only low/medium/high.
-// https://ollama.com/library/gpt-oss
-const GPT_OSS_THINKING_MAP = {
-  off: null,
-  minimal: null,
-  low: "low",
-  medium: "medium",
-  high: "high",
-  xhigh: null,
-};
-
-// Qwen 3.x is binary-only (think / nothink), no gradation.
-// https://docs.ollama.com/capabilities/thinking
-const BINARY_THINKING_MAP = {
-  off: "none",
-  minimal: null,
-  low: null,
-  medium: "medium",
-  high: null,
-  xhigh: null,
-};
-
-function resolveThinkingLevelMap(id: string, capabilities: string[]): ProviderModelConfig["thinkingLevelMap"] {
-  if (!capabilities.includes("thinking")) return undefined;
-  if (id.startsWith("gpt-oss")) return GPT_OSS_THINKING_MAP;
-  if (id.startsWith("qwen3")) return BINARY_THINKING_MAP;
-  return DEFAULT_THINKING_MAP;
 }
 
 // --- Assembly: raw API data -> ProviderModelConfig[] ---

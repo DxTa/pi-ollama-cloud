@@ -7,7 +7,7 @@ Registers Ollama Cloud as a model provider with dynamically fetched models, and 
 ## Features
 
 - **Dynamic model discovery** - Fetches the full model list from `ollama.com/v1/models`, then fetches per-model details via `/api/show` to determine capabilities, context length, and tool support.
-- **Curated thinking levels** — Maps Pi's thinking levels to Ollama Cloud's OpenAI-compatible `reasoning_effort` values (`none`, `low`, `medium`, `high`). GPT-OSS has no off mode (low/medium/high only).
+- **Curated thinking levels** — Maps Pi's thinking levels to Ollama Cloud's OpenAI-compatible `reasoning_effort` values via `thinking-levels.ts`, with per-model exceptions based on API testing.
 - **Persistent cache** - Raw API responses are cached at `~/.pi/agent/cache/ollama-cloud-models.json` so models are available immediately on startup without hitting the network.
 - **Startup refresh** - When the local cache is stale, the plugin uses it immediately and then runs the same visible refresh flow as `/ollama-cloud-refresh` once the Pi session UI is available. Missing/invalid caches use a small fallback list until refresh completes.
 - **`/ollama-cloud-refresh` command** - Re-fetches the model list and updates the cache and provider registration live (no restart needed).
@@ -130,20 +130,16 @@ Model metadata is derived from the cached data:
 
 ### Thinking level mapping
 
-Pi's thinking levels are mapped to Ollama Cloud's OpenAI-compatible `reasoning_effort` parameter. The API accepts four values: `none`, `low`, `medium`, `high` ("max" is not supported). See [OpenAI compatibility docs](https://docs.ollama.com/api/openai-compatibility).
+Pi's thinking levels are mapped to Ollama Cloud's OpenAI-compatible `reasoning_effort` parameter in [`thinking-levels.ts`](thinking-levels.ts). The API accepts `none`, `low`, `medium`, `high`, and `max` — but `max` has no observable effect beyond `high`.
 
-| Pi level | reasoning_effort sent |
-|---|---|
-| `off` | `"none"` |
-| `low` | `"low"` |
-| `medium` | `"medium"` |
-| `high` | `"high"` |
+| Map | Models | Levels exposed | Notes |
+|---|---|---|---|
+| `DEFAULT` | Most thinking models | off, low, medium, high, xhigh | `minimal` hidden (duplicate of low) |
+| `GPT_OSS` | `gpt-oss*` | low, medium, high | Can't disable thinking, no off or xhigh |
+| `QWEN3` | `qwen3*` (except `qwen3-vl*`) | off, medium | Binary-only (think/nothink), no gradation |
+| `NO_OFF` | `qwen3-vl*`, `kimi-k2-thinking`, `minimax*` | low, medium, high, xhigh | "none" doesn't disable thinking on these models |
 
-`minimal` and `xhigh` are hidden (null) since they'd just duplicate `low`/`high`.
-
-**GPT-OSS exception:** GPT-OSS models can't disable thinking and only accept low/medium/high. The `off` level is hidden for these models. See [GPT-OSS library page](https://ollama.com/library/gpt-oss).
-
-**Qwen 3.x exception:** Qwen 3.x is binary-only (think/nothink). Only `off` and `medium` are exposed. See [thinking capabilities docs](https://docs.ollama.com/capabilities/thinking).
+See [docs/think-experiment.md](docs/think-experiment.md) for the testing methodology and results.
 
 Refresh from inside Pi:
 
