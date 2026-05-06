@@ -102,11 +102,6 @@ async function runRefresh(pi: ExtensionAPI, ctx: Pick<ExtensionCommandContext, "
     writeCache(raw);
     const newModels = assembleModels(raw);
 
-    // NOTE: Some models may trigger errors like:
-    //   Error: 400 "developer is not one of ['system', 'assistant', 'user', 'tool', 'function']"
-    // If that comes up, consider setting `supportsDeveloperRole: false` in the compat field
-    // for the provider or specific models, e.g.:
-    //   compat: { supportsDeveloperRole: false }
     registerProvider(pi, newModels);
 
     ctx.ui.notify(`Registered ${newModels.length} Ollama Cloud models`, "info");

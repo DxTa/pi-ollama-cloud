@@ -94,6 +94,36 @@ export const FALLBACK_MODELS: ProviderModelConfig[] = [
     maxTokens: 32768,
     compat: { supportsDeveloperRole: false },
   },
+  {
+    id: "deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
+    reasoning: true,
+    input: ["text"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1000000,
+    maxTokens: 32768,
+    compat: { supportsDeveloperRole: false },
+  },
+  {
+    id: "qwen3.5",
+    name: "Qwen 3.5",
+    reasoning: true,
+    input: ["text"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 131072,
+    maxTokens: 32768,
+    compat: { supportsDeveloperRole: false },
+  },
+  {
+    id: "kimi-k2.6",
+    name: "Kimi K2.6",
+    reasoning: true,
+    input: ["text"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 131072,
+    maxTokens: 32768,
+    compat: { supportsDeveloperRole: false },
+  },
 ];
 
 // --- Cache I/O ---
@@ -139,11 +169,6 @@ export function readCacheState(): CacheState {
     : { status: "stale", models: data.models };
 }
 
-function readCache(): Record<string, CachedOllamaModel> | null {
-  const state = readCacheState();
-  return state.status === "missing" ? null : state.models;
-}
-
 export function writeCache(models: Record<string, CachedOllamaModel>): void {
   try {
     mkdirSync(CACHE_DIR, { recursive: true });
@@ -160,7 +185,8 @@ async function fetchModelIds(apiKey: string, timeoutMs = FETCH_TIMEOUT_MS): Prom
     { headers: { Authorization: `Bearer ${apiKey}` } },
     timeoutMs,
   );
-  if (!res.ok || !res.data) throw new Error(`Failed to fetch model list: ${res.status}${res.error ? ` - ${res.error}` : ""}`);
+  if (!res.ok || !res.data)
+    throw new Error(`Failed to fetch model list: ${res.status}${res.error ? ` - ${res.error}` : ""}`);
   return res.data.data.map((m) => m.id);
 }
 
@@ -174,7 +200,8 @@ async function fetchModelDetails(apiKey: string, id: string, timeoutMs = FETCH_T
     },
     timeoutMs,
   );
-  if (!res.ok || !res.data) throw new Error(`Failed to fetch /api/show for ${id}: ${res.status}${res.error ? ` - ${res.error}` : ""}`);
+  if (!res.ok || !res.data)
+    throw new Error(`Failed to fetch /api/show for ${id}: ${res.status}${res.error ? ` - ${res.error}` : ""}`);
   return res.data;
 }
 
@@ -218,7 +245,8 @@ async function refreshOllamaCloudModels(params: {
     }
   }
   const succeeded = Object.keys(models).length;
-  if (succeeded === 0) throw new Error(`Failed to fetch model details${detailsFailed ? ` (${detailsFailed} failed)` : ""}`);
+  if (succeeded === 0)
+    throw new Error(`Failed to fetch model details${detailsFailed ? ` (${detailsFailed} failed)` : ""}`);
   notify(`Fetched ${succeeded} model details${detailsFailed ? ` (${detailsFailed} failed)` : ""}`, "info");
 
   onProgress({

@@ -112,3 +112,5 @@ Models where `"none"` **does not** disable thinking (used by `NO_OFF` map in `th
 - `qwen3-vl:235b` — unlike other qwen3 models which support off
 
 All other thinking-capable models correctly produce 0 thinking chars with `"none"`.
+
+**Caveat on `max`:** The trivial `7 * 8` prompt used here is too simple to expose differences between `high` and `max` - most models terminate quickly regardless of effort. On harder prompts the gap can be substantial: e.g. `deepseek-v4-pro` burned ~32k tokens on `high` vs ~55k on `max` for a math puzzle (see [#11 review](https://github.com/fgrehm/pi-ollama-cloud/pull/11#discussion_r3193205703)). We still pass `xhigh` -> `max` through since it's a no-op when ignored and meaningful when it isn't.

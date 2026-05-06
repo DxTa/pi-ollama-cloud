@@ -130,7 +130,7 @@ Model metadata is derived from the cached data:
 
 ### Thinking level mapping
 
-Pi's thinking levels are mapped to Ollama Cloud's OpenAI-compatible `reasoning_effort` parameter in [`thinking-levels.ts`](thinking-levels.ts). The API accepts `none`, `low`, `medium`, `high`, and `max` — but `max` has no observable effect beyond `high`.
+Pi's thinking levels are mapped to Ollama Cloud's OpenAI-compatible `reasoning_effort` parameter in [`thinking-levels.ts`](thinking-levels.ts). The API accepts `none`, `low`, `medium`, `high`, and `max`. Effects of `max` over `high` vary by model and prompt difficulty - see [`docs/think-experiment.md`](docs/think-experiment.md) for details.
 
 | Map | Models | Levels exposed | Notes |
 |---|---|---|---|
