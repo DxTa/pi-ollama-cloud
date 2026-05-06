@@ -38,7 +38,6 @@ jobs:
         env:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_CLOUD_API_KEY }}
         run: |
-          set -o pipefail
           output=$(pi --no-extensions -e ./index.ts --thinking off --model "ollama-cloud/glm-5.1" --no-tools --mode json -p 'hi' 2>&1)
           if echo "$output" | grep -qE '"type"\s*:\s*"thinking"'; then
             echo "FAIL: thinking block found when off"
@@ -50,7 +49,6 @@ jobs:
         env:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_CLOUD_API_KEY }}
         run: |
-          set -o pipefail
           output=$(pi --no-extensions -e ./index.ts --thinking low --model "ollama-cloud/glm-5.1" --no-tools --mode json -p 'hi' 2>&1)
           if ! echo "$output" | grep -qE '"type"\s*:\s*"thinking"'; then
             echo "FAIL: no thinking block found when low"
