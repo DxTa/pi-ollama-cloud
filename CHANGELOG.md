@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-- Fix system prompt (AGENTS.md content) not being read by GLM models. The provider was sending the system prompt with `role: "developer"` for models with `reasoning: true`, but Ollama Cloud's API doesn't handle that role for GLM models. Forced `supportsDeveloperRole: false` so the system prompt always uses `role: "system"`, which works across all models.
+- Fix `/api/chat` requests not disabling thinking when Pi's thinking level is set to `off`. Maps Pi `off` to `reasoning_effort: "none"` on models where the API respects it, hides the `off` level on models where it doesn't (gpt-oss, kimi-k2-thinking, minimax, qwen3-vl). (#6)
+- Add `thinking-levels.ts` with curated per-model thinking level maps (DEFAULT, GPT_OSS, QWEN3, NO_OFF), validated against all 24 thinking-capable models via automated experiment (see docs/think-experiment.md).
+- Fix system prompt (AGENTS.md content) not being read by GLM models by setting `supportsDeveloperRole: false` on all registered models.
+- Rename smoke test to test, add lint step.
+- Treat stale local model caches as usable for immediate startup while triggering the same visible refresh flow as `/ollama-cloud-refresh` on `session_start`; use fallback models only when the cache is missing or invalid.
+- Add a single-line `/ollama-cloud-refresh` progress widget showing the current stage, count, percentage, failures, and progress bar.
+- Add thinking on/off assertions to the CI test workflow.
 
 ## [0.3.1] - 2026-05-05
 

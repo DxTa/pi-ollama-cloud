@@ -7,9 +7,10 @@ Registers Ollama Cloud as a model provider with dynamically fetched models, and 
 ## Features
 
 - **Dynamic model discovery** - Fetches the full model list from `ollama.com/v1/models`, then fetches per-model details via `/api/show` to determine capabilities, context length, and tool support.
+- **Curated thinking levels** — Maps Pi's thinking levels to Ollama Cloud's OpenAI-compatible `reasoning_effort` values via `thinking-levels.ts`, with per-model exceptions based on API testing.
 - **Persistent cache** - Raw API responses are cached at `~/.pi/agent/cache/ollama-cloud-models.json` so models are available immediately on startup without hitting the network.
-- **Cold cache fallback** - When no cache exists, a small set of hardcoded models is used until `/ollama-cloud-refresh` is run.
-- **`/ollama-cloud-refresh` command** - Re-fetches the model list from the API and updates the cache and provider registration live (no restart needed).
+- **Startup refresh** - When the local cache is stale, the plugin uses it immediately and then runs the same visible refresh flow as `/ollama-cloud-refresh` once the Pi session UI is available. Missing/invalid caches use a small fallback list until refresh completes.
+- **`/ollama-cloud-refresh` command** - Re-fetches the model list and updates the cache and provider registration live (no restart needed).
 - **`ollama_web_search` tool** - Search the web for real-time information using Ollama Cloud's `/api/web_search` endpoint. Returns titles, URLs, and content snippets.
 - **`ollama_web_fetch` tool** - Fetch and extract text content from a web page URL using Ollama Cloud's `/api/web_fetch` endpoint. Returns page title, content, and links.
 - **Zero cost tracking** - All models are registered with zero costs since Ollama Cloud uses a flat subscription model (Free, Pro, Max) rather than per-token billing. Per-request costs don't apply, so Pi's cost tracker always shows zero. See [ollama.com/pricing](https://ollama.com/pricing) for plan details.
@@ -93,13 +94,13 @@ Accepted disabling values are `0`, `false`, `no`, `off`, or an empty string. Whe
 
 ### 4. Fetch models
 
-On first launch the plugin will use a small set of fallback models. Run:
+On first launch the plugin registers a small hardcoded fallback list, then refreshes model metadata automatically with the same progress widget used by the manual command. If an existing cache is merely stale, that cached model list remains active while refresh runs. You can also run:
 
 ```
 /ollama-cloud-refresh
 ```
 
-This fetches the full model list from the Ollama Cloud API and caches it locally.
+This fetches the full model list from the Ollama Cloud API and overwrites the local cache.
 
 ### 5. Select a model
 
@@ -114,17 +115,39 @@ The plugin uses two Ollama Cloud API endpoints to build the model list:
 
 Only models with the `tools` capability are registered - these are the ones Pi can use for tool-calling.
 
-The raw `/api/show` responses are cached at `~/.pi/agent/cache/ollama-cloud-models.json`. This cache **never expires** - run `/ollama-cloud-refresh` to update it.
+The raw `/api/show` responses are cached at `~/.pi/agent/cache/ollama-cloud-models.json` with a top-level `timestamp` value. If that local cache is older than 30 days, the plugin keeps using it immediately and triggers the visible refresh flow on `session_start`. If the cache is missing or invalid, the plugin registers a small hardcoded model list until refresh succeeds. If no key is available or refresh fails, the current registered list remains active until `/ollama-cloud-refresh` succeeds.
 
 Model metadata is derived from the cached data:
 
 | Field | Source |
 |---|---|
 | `reasoning` | `capabilities` includes `"thinking"` |
+| `thinkingLevelMap` | [`thinking-levels.ts`](thinking-levels.ts) with 4 maps (DEFAULT, GPT_OSS, QWEN3, NO_OFF) based on API testing |
 | `input` | `["text", "image"]` if `capabilities` includes `"vision"`, else `["text"]` |
 | `contextWindow` | `model_info.*.context_length` (falls back to 128000) |
 | `maxTokens` | Fixed at 32768 |
 | `cost` | All zeros (Ollama Cloud uses subscription plans, not per-token billing - see [pricing](https://ollama.com/pricing)) |
+
+### Thinking level mapping
+
+Pi's thinking levels are mapped to Ollama Cloud's OpenAI-compatible `reasoning_effort` parameter in [`thinking-levels.ts`](thinking-levels.ts). The API accepts `none`, `low`, `medium`, `high`, and `max`. Effects of `max` over `high` vary by model and prompt difficulty - see [`docs/think-experiment.md`](docs/think-experiment.md) for details.
+
+| Map | Models | Levels exposed | Notes |
+|---|---|---|---|
+| `DEFAULT` | Most thinking models | off, low, medium, high, xhigh | `minimal` hidden (duplicate of low) |
+| `GPT_OSS` | `gpt-oss*` | low, medium, high | Can't disable thinking, no off or xhigh |
+| `QWEN3` | `qwen3*` (except `qwen3-vl*`) | off, medium | Binary-only (think/nothink), no gradation |
+| `NO_OFF` | `qwen3-vl*`, `kimi-k2-thinking`, `minimax*` | low, medium, high, xhigh | "none" doesn't disable thinking on these models |
+
+See [docs/think-experiment.md](docs/think-experiment.md) for the testing methodology and results.
+
+Refresh from inside Pi:
+
+```text
+/ollama-cloud-refresh
+```
+
+That command updates `~/.pi/agent/cache/ollama-cloud-models.json` with a new `timestamp` and re-registers the provider live, so no restart is required.
 
 ## Tools
 
@@ -197,5 +220,5 @@ Each publish also gets automatic [provenance attestation](https://docs.npmjs.com
 
 ## Notes
 
-- Some Ollama Cloud models may reject the `developer` message role, causing a `400` error. If you encounter this, the model may need `compat: { supportsDeveloperRole: false }`. You can edit `index.ts` to add this for specific models, or open an issue to track it.
+- The extension sets `supportsDeveloperRole: false` on all models so the system prompt always uses `role: "system"`. Without this, pi sends the prompt as `role: "developer"` for thinking-capable models, which some models (e.g. GLM-5.1) ignore entirely — the prompt simply isn't read.
 - The fetch timeout is 10 seconds per request. On slow connections, some model detail fetches may time out - the plugin reports how many succeeded vs failed.

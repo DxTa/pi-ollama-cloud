@@ -8,6 +8,8 @@
   "files": [
     "index.ts",
     "models.ts",
+    "thinking-levels.ts",
+    "utils.ts",
     "web-tools.ts",
     "CHANGELOG.md",
     "README.md",

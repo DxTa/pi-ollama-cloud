@@ -1,0 +1,63 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install deps
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Install pi
+        run: npm install -g @mariozechner/pi-coding-agent
+
+      - name: Basic smoke test
+        env:
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_CLOUD_API_KEY }}
+        run: pi --extension ./index.ts --model "ollama-cloud/gemma4:31b" --no-tools -p "Say hi in one word"
+
+      - name: Thinking off (no reasoning)
+        env:
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_CLOUD_API_KEY }}
+        run: |
+          output=$(pi --no-extensions -e ./index.ts --thinking off --model "ollama-cloud/glm-5.1" --no-tools --mode json -p 'hi' 2>&1) || { echo "FAIL: pi exited with $?"; exit 1; }
+          if echo "$output" | grep -qE '"type"\s*:\s*"thinking"'; then
+            echo "FAIL: thinking block found when off"
+            exit 1
+          fi
+          echo "PASS: no thinking block when off"
+
+      - name: Thinking low (reasoning enabled)
+        env:
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_CLOUD_API_KEY }}
+        run: |
+          output=$(pi --no-extensions -e ./index.ts --thinking low --model "ollama-cloud/glm-5.1" --no-tools --mode json -p 'hi' 2>&1) || { echo "FAIL: pi exited with $?"; exit 1; }
+          if ! echo "$output" | grep -qE '"type"\s*:\s*"thinking"'; then
+            echo "FAIL: no thinking block found when low"
+            exit 1
+          fi
+          echo "PASS: thinking block found when low"
