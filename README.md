@@ -220,5 +220,5 @@ Each publish also gets automatic [provenance attestation](https://docs.npmjs.com
 
 ## Notes
 
-- The extension sets `supportsDeveloperRole: false` on all models, so the system prompt always uses `role: "system"`. This avoids 400 errors on models that don't handle the `developer` role.
+- The extension sets `supportsDeveloperRole: false` on all models so the system prompt always uses `role: "system"`. Without this, pi sends the prompt as `role: "developer"` for thinking-capable models, which some models (e.g. GLM-5.1) ignore entirely — the prompt simply isn't read.
 - The fetch timeout is 10 seconds per request. On slow connections, some model detail fetches may time out - the plugin reports how many succeeded vs failed.
