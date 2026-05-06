@@ -3,8 +3,9 @@
  *
  * Maps Pi's thinking levels to Ollama Cloud's OpenAI-compatible
  * `reasoning_effort` values. The API accepts "none", "low", "medium",
- * "high", and "max" — but "max" has no observable effect beyond "high"
- * on this endpoint.
+ * "high", and "max". On simple prompts, "max" can be a no-op over
+ * "high", but on harder prompts it can increase thinking substantially
+ * (e.g. deepseek-v4-pro: ~32k tokens on high vs ~55k on max).
  *
  * A `null` value means the level is hidden in Pi's UI.
  *
@@ -14,7 +15,7 @@
  *   - Qwen 3.x (non-VL): binary-only (think/nothink) — off works
  *   - Qwen 3 VL: "none" doesn't disable thinking — off is hidden
  *   - Kimi K2 Thinking: "none" doesn't disable thinking — off is hidden
- *   - MiniMax M2.1 / M2.7: "none" doesn't disable thinking — off is hidden
+ *   - MiniMax M2.x: "none" doesn't disable thinking — off is hidden
  *
  * Reference: https://docs.ollama.com/api/openai-compatibility
  */
