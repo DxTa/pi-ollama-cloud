@@ -138,6 +138,27 @@ export function registerWebSearchTool(pi: ExtensionAPI) {
 
         if (!res.ok) {
           const errorText = await res.text().catch(() => "");
+          if (res.status === 401 || res.status === 403) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Ollama Cloud search failed: authentication error. " +
+                    "Check your API key in OLLAMA_API_KEY or auth.json.",
+                },
+              ],
+              isError: true,
+            };
+          }
+          if (res.status === 429) {
+            return {
+              content: [
+                { type: "text", text: "Ollama Cloud search failed: rate limited. Try again shortly." },
+              ],
+              isError: true,
+            };
+          }
           return {
             content: [
               { type: "text", text: `Search API error (status ${res.status}): ${errorText || res.statusText}` },
@@ -198,8 +219,31 @@ export function registerWebFetchTool(pi: ExtensionAPI) {
 
         if (!res.ok) {
           const errorText = await res.text().catch(() => "");
+          if (res.status === 401 || res.status === 403) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Ollama Cloud fetch failed: authentication error. " +
+                    "Check your API key in OLLAMA_API_KEY or auth.json.",
+                },
+              ],
+              isError: true,
+            };
+          }
+          if (res.status === 429) {
+            return {
+              content: [
+                { type: "text", text: "Ollama Cloud fetch failed: rate limited. Try again shortly." },
+              ],
+              isError: true,
+            };
+          }
           return {
-            content: [{ type: "text", text: `Fetch API error (status ${res.status}): ${errorText || res.statusText}` }],
+            content: [
+              { type: "text", text: `Fetch API error (status ${res.status}): ${errorText || res.statusText}` },
+            ],
             isError: true,
           };
         }

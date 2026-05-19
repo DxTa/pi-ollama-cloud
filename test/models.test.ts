@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { assembleModels } from "../models.ts";
+import { afterEach, describe, expect, it } from "vitest";
+import { assembleModels, fetchModelDetails, fetchModelIds } from "../models.ts";
 import { resolve } from "../thinking-levels.ts";
 import { getContextLength } from "../utils.ts";
 
@@ -309,5 +309,103 @@ describe("getContextLength", () => {
 
   it("ignores context_length values that are not numbers", () => {
     expect(getContextLength({ "test.context_length": "not-a-number" })).toBe(128000);
+  });
+});
+
+// fetchModelIds error handling
+// ============================================================================
+
+describe("fetchModelIds", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("throws auth error on 401", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
+    await expect(fetchModelIds("bad-key")).rejects.toThrow(
+      "Ollama Cloud authentication failed",
+    );
+  });
+
+  it("throws auth error on 403", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: "forbidden" }), { status: 403 });
+    await expect(fetchModelIds("bad-key")).rejects.toThrow(
+      "Ollama Cloud authentication failed",
+    );
+  });
+
+  it("throws rate limit error on 429", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: "too many requests" }), { status: 429 });
+    await expect(fetchModelIds("key")).rejects.toThrow(
+      "Ollama Cloud rate limited",
+    );
+  });
+
+  it("throws generic error on other failures", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: "server error" }), { status: 500 });
+    await expect(fetchModelIds("key")).rejects.toThrow(
+      "Failed to fetch model list",
+    );
+  });
+
+  it("returns model IDs on success", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ data: [{ id: "qwen3" }, { id: "gemma3" }] }), {
+        status: 200,
+      });
+    const ids = await fetchModelIds("good-key");
+    expect(ids).toEqual(["qwen3", "gemma3"]);
+  });
+});
+
+describe("fetchModelDetails", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("throws auth error on 401", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
+    await expect(fetchModelDetails("bad-key", "qwen3")).rejects.toThrow(
+      "Ollama Cloud authentication failed",
+    );
+  });
+
+  it("throws rate limit error on 429", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: "too many requests" }), { status: 429 });
+    await expect(fetchModelDetails("key", "qwen3")).rejects.toThrow(
+      "Ollama Cloud rate limited",
+    );
+  });
+
+  it("throws generic error on other failures", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+    await expect(fetchModelDetails("key", "unknown")).rejects.toThrow(
+      "Failed to fetch /api/show",
+    );
+  });
+
+  it("returns model details on success", async () => {
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          capabilities: ["tools"],
+          model_info: { "test.context_length": 131072 },
+        }),
+        { status: 200 },
+      );
+    const details = await fetchModelDetails("good-key", "qwen3");
+    expect(details.capabilities).toContain("tools");
+    expect(details.model_info).toBeDefined();
   });
 });

@@ -174,18 +174,32 @@ export function writeCache(models: Record<string, CachedOllamaModel>): void {
 }
 
 // --- Fetch Models ---
-async function fetchModelIds(apiKey: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<string[]> {
+export async function fetchModelIds(apiKey: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<string[]> {
   const res = await fetchJsonWithTimeout<{ data: { id: string }[] }>(
     `${OLLAMA_BASE}/v1/models`,
     { headers: { Authorization: `Bearer ${apiKey}` } },
     timeoutMs,
   );
-  if (!res.ok || !res.data)
-    throw new Error(`Failed to fetch model list: ${res.status}${res.error ? ` - ${res.error}` : ""}`);
+
+  if (res.status === 401 || res.status === 403) {
+    throw new Error(
+      "Ollama Cloud authentication failed. " +
+        "Check your API key in OLLAMA_API_KEY or auth.json.",
+    );
+  }
+  if (res.status === 429) {
+    throw new Error("Ollama Cloud rate limited. Try again shortly.");
+  }
+  if (!res.ok || !res.data) {
+    throw new Error(
+      `Failed to fetch model list: ${res.status}${res.error ? ` - ${res.error}` : ""}`,
+    );
+  }
+
   return res.data.data.map((m) => m.id);
 }
 
-async function fetchModelDetails(apiKey: string, id: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<CachedOllamaModel> {
+export async function fetchModelDetails(apiKey: string, id: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<CachedOllamaModel> {
   const res = await fetchJsonWithTimeout<OllamaShowResponse>(
     `${OLLAMA_BASE}/api/show`,
     {
@@ -195,8 +209,22 @@ async function fetchModelDetails(apiKey: string, id: string, timeoutMs = FETCH_T
     },
     timeoutMs,
   );
-  if (!res.ok || !res.data)
-    throw new Error(`Failed to fetch /api/show for ${id}: ${res.status}${res.error ? ` - ${res.error}` : ""}`);
+
+  if (res.status === 401 || res.status === 403) {
+    throw new Error(
+      "Ollama Cloud authentication failed. " +
+        "Check your API key in OLLAMA_API_KEY or auth.json.",
+    );
+  }
+  if (res.status === 429) {
+    throw new Error("Ollama Cloud rate limited. Try again shortly.");
+  }
+  if (!res.ok || !res.data) {
+    throw new Error(
+      `Failed to fetch /api/show for ${id}: ${res.status}${res.error ? ` - ${res.error}` : ""}`,
+    );
+  }
+
   return res.data;
 }
 
