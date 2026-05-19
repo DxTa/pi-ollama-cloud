@@ -163,9 +163,7 @@ export function registerWebSearchTool(pi: ExtensionAPI) {
           }
           if (res.status === 429) {
             return {
-              content: [
-                { type: "text", text: "Ollama Cloud search failed: rate limited. Try again shortly." },
-              ],
+              content: [{ type: "text", text: "Ollama Cloud search failed: rate limited. Try again shortly." }],
               isError: true,
             };
           }
@@ -244,16 +242,12 @@ export function registerWebFetchTool(pi: ExtensionAPI) {
           }
           if (res.status === 429) {
             return {
-              content: [
-                { type: "text", text: "Ollama Cloud fetch failed: rate limited. Try again shortly." },
-              ],
+              content: [{ type: "text", text: "Ollama Cloud fetch failed: rate limited. Try again shortly." }],
               isError: true,
             };
           }
           return {
-            content: [
-              { type: "text", text: `Fetch API error (status ${res.status}): ${errorText || res.statusText}` },
-            ],
+            content: [{ type: "text", text: `Fetch API error (status ${res.status}): ${errorText || res.statusText}` }],
             isError: true,
           };
         }

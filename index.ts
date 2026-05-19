@@ -177,8 +177,9 @@ export default async function (pi: ExtensionAPI) {
   }
 
   // Module-level tracking across session restarts within the same extension
-  // instance. Resets on /reload or extension teardown, which is the desired
-  // behavior (session_start re-reads config for the new session).
+  // instance. The config file is read once, on the first session_start;
+  // later sessions reuse webToolsEnabled (including any /ollama-webtools
+  // override). Restart pi or /reload to pick up config file changes.
   let webToolsConfigured = false;
   let webToolsEnabled = false;
 
