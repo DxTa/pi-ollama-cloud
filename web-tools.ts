@@ -1,3 +1,13 @@
+/**
+ * Ollama Cloud web tools: ollama_web_search and ollama_web_fetch.
+ *
+ * Self-contained module. Depends on:
+ *   - models.ts       - only for OLLAMA_BASE URL constant
+ *   - pi-coding-agent - AuthStorage, ExtensionAPI, keyHint, truncateToVisualLines
+ *   - pi-tui          - Text, truncateToWidth
+ * Does NOT depend on provider registration or model fetching internals.
+ */
+
 import { AuthStorage, type ExtensionAPI, keyHint, truncateToVisualLines } from "@earendil-works/pi-coding-agent";
 import { Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "@sinclair/typebox";
