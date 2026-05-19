@@ -113,6 +113,8 @@ export function assembleModels(raw: Record<string, CachedOllamaModel>): Provider
       input: (data.capabilities?.includes("vision") ? ["text", "image"] : ["text"]) as ("text" | "image")[],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow: getContextLength(data.model_info ?? {}),
+      // No per-model limit exposed by the API (https://docs.ollama.com/api-reference/show-model-details,
+      // https://github.com/ollama/ollama/issues/7222). 32768 matches most Ollama Cloud context windows.
       maxTokens: 32768,
       compat: buildCompat(),
     }));

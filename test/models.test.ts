@@ -138,8 +138,7 @@ describe("assembleModels", () => {
     expect(models[0].contextWindow).toBe(128000);
   });
 
-  it("hardcodes maxTokens to 32768 (TODO: extract from API)", () => {
-    // FIXME(@agent): replace with per-model max output length from /api/show.
+  it("sets maxTokens to 32768 (no per-model limit exposed by API)", () => {
     const models = assembleModels({ m: rawModel() });
     expect(models[0].maxTokens).toBe(32768);
   });
