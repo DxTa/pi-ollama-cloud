@@ -52,6 +52,8 @@ export function loadConfig(cwd: string): OllamaCloudConfig {
     try {
       const content = readFileSync(globalPath, "utf-8");
       const parsed = JSON.parse(content);
+      // Silently skip files that parse to null, arrays, or primitives —
+      // malformed config should not crash the extension (defaults apply).
       if (parsed != null && typeof parsed === "object" && !Array.isArray(parsed)) {
         globalConfig = parsed as OllamaCloudConfig;
       }
@@ -65,6 +67,7 @@ export function loadConfig(cwd: string): OllamaCloudConfig {
     try {
       const content = readFileSync(projectPath, "utf-8");
       const parsed = JSON.parse(content);
+      // Same guard as global config: null/array/primitive parses are ignored.
       if (parsed != null && typeof parsed === "object" && !Array.isArray(parsed)) {
         projectConfig = parsed as OllamaCloudConfig;
       }

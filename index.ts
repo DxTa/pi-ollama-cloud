@@ -18,7 +18,8 @@
  * so the provider assembly can be debugged and re-derived without re-fetching.
  *
  * Startup behavior:
- *   - Missing cache: uses baked-in GENERATED_MODELS (generated at release time from the API).
+ *   - Missing cache: uses baked-in GENERATED_MODELS (manually generated via
+ *     `npm run generate-models` and committed to the repo).
  *   - Stale cache (>30 days): uses the cached data immediately and triggers a visible refresh
  *     on session_start that shows progress in the UI widget.
  *   - Fresh cache: uses cached data directly, no refresh triggered.
@@ -219,10 +220,7 @@ export default async function (pi: ExtensionAPI) {
         // Toggle current state
         webToolsEnabled = !webToolsEnabled;
       } else {
-        ctx.ui.notify(
-          `Unknown argument "${args.trim()}". Usage: /ollama-webtools [on|off|enable|disable]`,
-          "error",
-        );
+        ctx.ui.notify(`Unknown argument "${args.trim()}". Usage: /ollama-webtools [on|off|enable|disable]`, "error");
         return;
       }
 

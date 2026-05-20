@@ -1,10 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  type ExtensionCommandContext,
-  getAgentDir,
-  type ProviderModelConfig,
-} from "@earendil-works/pi-coding-agent";
+import { type ExtensionCommandContext, getAgentDir, type ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { resolve as resolveThinkingLevelMap } from "./thinking-levels.ts";
 import { concurrentMap, fetchJsonWithTimeout, getContextLength } from "./utils.ts";
 
@@ -170,11 +166,7 @@ export function writeCache(models: Record<string, CachedOllamaModel>): void {
 
 // --- Fetch Models ---
 export async function fetchModelIds(timeoutMs = FETCH_TIMEOUT_MS): Promise<string[]> {
-  const res = await fetchJsonWithTimeout<{ data: { id: string }[] }>(
-    `${OLLAMA_BASE}/v1/models`,
-    {},
-    timeoutMs,
-  );
+  const res = await fetchJsonWithTimeout<{ data: { id: string }[] }>(`${OLLAMA_BASE}/v1/models`, {}, timeoutMs);
 
   if (res.status === 429) {
     throw new Error("Ollama Cloud rate limited. Try again shortly.");
@@ -186,10 +178,7 @@ export async function fetchModelIds(timeoutMs = FETCH_TIMEOUT_MS): Promise<strin
   return res.data.data.map((m) => m.id);
 }
 
-export async function fetchModelDetails(
-  id: string,
-  timeoutMs = FETCH_TIMEOUT_MS,
-): Promise<CachedOllamaModel> {
+export async function fetchModelDetails(id: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<CachedOllamaModel> {
   const res = await fetchJsonWithTimeout<OllamaShowResponse>(
     `${OLLAMA_BASE}/api/show`,
     {
