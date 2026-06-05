@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+- Fix `apiKey` registered as a literal string instead of an environment variable reference. Changed `apiKey: "OLLAMA_API_KEY"` to `apiKey: "$OLLAMA_API_KEY"` in `registerProvider`, resolving the deprecation warning emitted by pi v0.77.0+ and making the `OLLAMA_API_KEY` env var work alongside `auth.json` (env var takes priority, falls back to `auth.json`). Thanks @mandusm (#21).
+- Make `scripts/generate-models.ts` produce a stable output: sort models by `id` and each object's keys alphabetically (with `id` and `name` first), so regenerating the catalog produces minimal diffs. Thanks @shyim for the idea (#22).
+- Exclude models announced for retirement (effective 2026-06-16) from the generated `GENERATED_MODELS` list: `kimi-k2-thinking`, `kimi-k2:1t`, `minimax-m2`, `glm-4.6`, `qwen3-next:80b`, `qwen3-vl:235b`, `qwen3-vl:235b-instruct`, `cogito-2.1:671b`. See https://docs.ollama.com/cloud#deprecations. `/ollama-cloud-refresh` will still register them from the live API until Ollama removes them.
+
 ## [0.5.0] - 2026-05-22
 
 - Update `peerDependencies` and imports to the new `@earendil-works/*` packages.
